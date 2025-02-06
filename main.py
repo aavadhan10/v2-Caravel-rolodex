@@ -224,11 +224,18 @@ def main():
                         st.write(f"- {industry}")
                 
                 # Display matches
-                st.subheader("👥 Top Matching Attorneys")
+                st.subheader("👥 Matching Attorneys")
                 
+                # Add match score explanation
+                st.markdown("""
+                    The match score indicates how well an attorney's expertise aligns with your specific legal needs. 
+                    It considers their self-assessed proficiency across various legal skills and practice areas.
+                """)
+                
+                # Display matches without showing they're ranked
                 for match in matches:
                     with st.expander(
-                        f"{match['name']} - {match['title']} (Match Score: {match['match_score']:.1f}%)"
+                        f"{match['name']} - {match['title']}"
                     ):
                         col1, col2 = st.columns(2)
                         
@@ -241,10 +248,7 @@ def main():
                             
                         with col2:
                             st.write("**Email:**")
-                            if match['email']:
-                                st.write(match['email'])
-                            else:
-                                st.write("N/A")
+                            st.write(match['email'])
                                 
                             st.write("**Languages:**")
                             st.write(match['languages'])
