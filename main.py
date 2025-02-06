@@ -69,53 +69,51 @@ class LawyerMatchingSystem:
         skills_map = {
             'acquisition': [
                 'Acquisitions', 'M&A', 'Due Diligence and Valuation',
-                'Cross-Border Transactions', 'Investment and Funding'
+                'Cross-Border Transactions', 'Investment and Funding',
+                'Corporate Reorganization', 'Private Equity and Venture Capital',
+                'Securities and Capital Markets'
             ],
             'startup': [
                 'Founder Agreements', 'Investment and Funding', 
-                'Private Equity and Venture Capital', 'Corporate Bylaws'
+                'Private Equity and Venture Capital', 'Corporate Bylaws',
+                'Commercial Contracts', 'Investment Law and Regulations'
+            ],
+            'merger': [  # Adding merger as it's closely related to acquisitions
+                'M&A', 'Due Diligence and Valuation', 'Corporate Reorganization',
+                'Cross-Border Transactions'
             ],
             'corporate': [
                 'Commercial Contracts', 'Corporate Bylaws', 'M&A',
                 'Corporate Reorganization', 'Due Diligence'
-            ],
-            'contract': [
-                'Commercial Contracts', 'Master Services Agreements',
-                'Professional Services Agreements', 'Non-Disclosure Agreements'
-            ],
-            'intellectual property': [
-                'Intellectual Property Protection', 'Patent Portfolio Management',
-                'Trademark Law', 'Copyright and Fair Dealing'
-            ],
-            'employment': [
-                'Employment Agreements', 'Labour and Union',
-                'Employment-based Immigration', 'Non-Competition and Solicitation Agreements'
-            ],
-            'privacy': [
-                'Privacy Compliance', 'Data Protection',
-                'Cross-Border Privacy Compliance', 'Cybersecurity'
             ]
         }
         
-        # Find matching skills based on keywords
-        matched_skills = []
+        # Find matching skills based on keywords and include related terms
+        matched_skills = set()  # Using set to avoid duplicates
+        
+        # Check for direct matches
         for key, skills in skills_map.items():
             if key in query_lower:
-                matched_skills.extend(skills)
+                matched_skills.update(skills)
         
-        # Add related skills for more comprehensive matching
-        if 'acquisition' in query_lower:
-            matched_skills.extend(['Investment Law', 'Securities and Capital Markets'])
-        if 'startup' in query_lower:
-            matched_skills.extend(['Early Stage Companies', 'Technology Licensing'])
-        
-        # If no specific matches, use general business skills
-        if not matched_skills:
-            matched_skills = ['Commercial Contracts', 'Corporate Bylaws', 'Professional Services Agreements']
+        # Add related skills for comprehensive matching
+        if 'acquisition' in query_lower or 'acquisitions' in query_lower or 'M&A' in query_lower.upper():
+            matched_skills.update(skills_map['merger'])
+            matched_skills.update(skills_map['corporate'])
+            
+        if 'startup' in query_lower or 'start-up' in query_lower or 'start up' in query_lower:
+            matched_skills.update(skills_map['startup'])
+            
+        # Always include some core business skills
+        matched_skills.update([
+            'Commercial Contracts',
+            'Corporate Bylaws',
+            'Due Diligence and Valuation'
+        ])
         
         return {
-            'primary_skills': list(set(matched_skills)),  # Remove duplicates
-            'required_experience': 7 if 'startup' in query_lower else 5,
+            'primary_skills': list(matched_skills),
+            'required_experience': 5,
             'industry_focus': ['Technology', 'Startups'] if 'startup' in query_lower else ['General Business'],
             'practice_areas': ['Corporate Commercial', 'M&A', 'Business Law']
         }
