@@ -62,17 +62,39 @@ class LawyerMatchingSystem:
         self.lawyer_data = self.lawyer_data.fillna('')
         
     def analyze_legal_need(self, query: str) -> Dict[str, Any]:
-        """Mock analysis of legal needs based on keywords"""
-        # Simple keyword-based analysis for now
+        """Analyze legal needs based on keywords with expanded matching"""
         query_lower = query.lower()
         
-        # Default skills based on common keywords
+        # Expanded skills map with more synonyms and related terms
         skills_map = {
-            'corporate': ['Commercial Contracts', 'Corporate Bylaws', 'M&A'],
-            'contract': ['Commercial Contracts', 'Master Services Agreements', 'Professional Services Agreements'],
-            'intellectual property': ['Intellectual Property Protection', 'Patent Portfolio Management', 'Trademark Law'],
-            'employment': ['Employment Agreements', 'Labour and Union', 'Employment-based Immigration'],
-            'privacy': ['Privacy Compliance', 'Data Protection', 'Cross-Border Privacy Compliance']
+            'acquisition': [
+                'Acquisitions', 'M&A', 'Due Diligence and Valuation',
+                'Cross-Border Transactions', 'Investment and Funding'
+            ],
+            'startup': [
+                'Founder Agreements', 'Investment and Funding', 
+                'Private Equity and Venture Capital', 'Corporate Bylaws'
+            ],
+            'corporate': [
+                'Commercial Contracts', 'Corporate Bylaws', 'M&A',
+                'Corporate Reorganization', 'Due Diligence'
+            ],
+            'contract': [
+                'Commercial Contracts', 'Master Services Agreements',
+                'Professional Services Agreements', 'Non-Disclosure Agreements'
+            ],
+            'intellectual property': [
+                'Intellectual Property Protection', 'Patent Portfolio Management',
+                'Trademark Law', 'Copyright and Fair Dealing'
+            ],
+            'employment': [
+                'Employment Agreements', 'Labour and Union',
+                'Employment-based Immigration', 'Non-Competition and Solicitation Agreements'
+            ],
+            'privacy': [
+                'Privacy Compliance', 'Data Protection',
+                'Cross-Border Privacy Compliance', 'Cybersecurity'
+            ]
         }
         
         # Find matching skills based on keywords
@@ -81,26 +103,45 @@ class LawyerMatchingSystem:
             if key in query_lower:
                 matched_skills.extend(skills)
         
+        # Add related skills for more comprehensive matching
+        if 'acquisition' in query_lower:
+            matched_skills.extend(['Investment Law', 'Securities and Capital Markets'])
+        if 'startup' in query_lower:
+            matched_skills.extend(['Early Stage Companies', 'Technology Licensing'])
+        
         # If no specific matches, use general business skills
         if not matched_skills:
             matched_skills = ['Commercial Contracts', 'Corporate Bylaws', 'Professional Services Agreements']
         
         return {
-            'primary_skills': list(set(matched_skills)),
-            'required_experience': 5,
-            'industry_focus': ['Technology', 'General Business'],
-            'practice_areas': ['Corporate Commercial', 'Business Law']
+            'primary_skills': list(set(matched_skills)),  # Remove duplicates
+            'required_experience': 7 if 'startup' in query_lower else 5,
+            'industry_focus': ['Technology', 'Startups'] if 'startup' in query_lower else ['General Business'],
+            'practice_areas': ['Corporate Commercial', 'M&A', 'Business Law']
         }
     
     def create_skill_vector(self, required_skills: List[str]) -> np.ndarray:
-        """Convert required skills into a weighted vector"""
+        """Convert required skills into a weighted vector with fuzzy matching"""
         skill_vector = np.zeros(len(self.skill_columns))
+        
         for skill in required_skills:
-            # Find closest matching skill in our taxonomy
-            matches = [col for col in self.skill_columns if skill.lower() in col.lower()]
-            for match in matches:
-                idx = self.skill_columns.index(match)
+            # Find closest matching skills in our taxonomy using partial matching
+            matches = []
+            skill_lower = skill.lower()
+            
+            for idx, column in enumerate(self.skill_columns):
+                column_clean = column.split('(')[0].strip().lower()
+                
+                # Check for partial matches
+                if (skill_lower in column_clean or 
+                    column_clean in skill_lower or
+                    any(word in column_clean for word in skill_lower.split())):
+                    matches.append(idx)
+            
+            # Weight all matching skills
+            for idx in matches:
                 skill_vector[idx] = 1.0
+                
         return skill_vector
     
     def match_lawyers(self, requirements: Dict[str, Any], top_n: int = 5) -> List[Dict[str, Any]]:
