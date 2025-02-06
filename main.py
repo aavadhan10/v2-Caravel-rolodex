@@ -5,6 +5,28 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics.pairwise import cosine_similarity
 from typing import List, Dict, Any
 
+def clean_skills_data(skills_file: str) -> pd.DataFrame:
+    """
+    Clean the skills matrix data by removing test entries and specific individuals.
+    
+    Args:
+        skills_file (str): Path to the skills matrix CSV file
+    
+    Returns:
+        pd.DataFrame: Cleaned skills matrix
+    """
+    # Read the skills matrix
+    df = pd.read_csv(skills_file)
+    
+    # Remove entries containing 'test' in any field (case insensitive)
+    df = df[~df.apply(lambda x: x.astype(str).str.contains('test', case=False, na=False)).any(axis=1)]
+    
+    # Remove entries for specific individuals
+    names_to_remove = ['Ankita Avadhani', 'Tania']
+    df = df[~df['Submitter Name'].str.contains('|'.join(names_to_remove), case=False, na=False)]
+    
+    return df
+
 class LawyerMatchingSystem:
     def __init__(self):
         """Initialize the LawyerMatchingSystem with necessary components"""
