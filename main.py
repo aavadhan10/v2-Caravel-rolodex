@@ -3,9 +3,8 @@ import pandas as pd
 import numpy as np
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics.pairwise import cosine_similarity
-import anthropic
-import json
 from typing import List, Dict, Any
+
 class LawyerMatchingSystem:
     def __init__(self):
         """Initialize the LawyerMatchingSystem with necessary components"""
@@ -13,7 +12,6 @@ class LawyerMatchingSystem:
         self.lawyer_data = None
         self.skill_vectors = None
         self.lawyer_map = {}  # Map between skills responses and lawyer profiles
-        self.client = anthropic.Client(api_key=os.getenv('ANTHROPIC_API_KEY'))
         
     def load_data(self) -> None:
         """Load and preprocess the skills and lawyer data"""
@@ -41,29 +39,36 @@ class LawyerMatchingSystem:
         # Clean lawyer data
         self.lawyer_data = self.lawyer_data.fillna('')
         
-    def get_claude_analysis(self, query: str) -> Dict[str, Any]:
-        """Use Claude to analyze the legal need and extract relevant skills"""
-        prompt = f"""Based on our legal skill taxonomy, analyze this legal need: "{query}"
-
-        Our skill taxonomy includes these main areas:
-        {', '.join(self.skill_columns[:10])}... and more.
-
-        Return a JSON object with:
-        1. "primary_skills": List of 3-5 most relevant skills from our taxonomy
-        2. "required_experience": Minimum years recommended (integer)
-        3. "industry_focus": List of relevant industries
-        4. "practice_areas": List of general practice areas needed
+    def analyze_legal_need(self, query: str) -> Dict[str, Any]:
+        """Mock analysis of legal needs based on keywords"""
+        # Simple keyword-based analysis for now
+        query_lower = query.lower()
         
-        Return only the JSON object, no other text."""
+        # Default skills based on common keywords
+        skills_map = {
+            'corporate': ['Commercial Contracts', 'Corporate Bylaws', 'M&A'],
+            'contract': ['Commercial Contracts', 'Master Services Agreements', 'Professional Services Agreements'],
+            'intellectual property': ['Intellectual Property Protection', 'Patent Portfolio Management', 'Trademark Law'],
+            'employment': ['Employment Agreements', 'Labour and Union', 'Employment-based Immigration'],
+            'privacy': ['Privacy Compliance', 'Data Protection', 'Cross-Border Privacy Compliance']
+        }
         
-        response = self.client.messages.create(
-            model="claude-3-sonnet-20240229",
-            max_tokens=1000,
-            temperature=0,
-            messages=[{"role": "user", "content": prompt}]
-        )
+        # Find matching skills based on keywords
+        matched_skills = []
+        for key, skills in skills_map.items():
+            if key in query_lower:
+                matched_skills.extend(skills)
         
-        return json.loads(response.content[0].text)
+        # If no specific matches, use general business skills
+        if not matched_skills:
+            matched_skills = ['Commercial Contracts', 'Corporate Bylaws', 'Professional Services Agreements']
+        
+        return {
+            'primary_skills': list(set(matched_skills)),
+            'required_experience': 5,
+            'industry_focus': ['Technology', 'General Business'],
+            'practice_areas': ['Corporate Commercial', 'Business Law']
+        }
     
     def create_skill_vector(self, required_skills: List[str]) -> np.ndarray:
         """Convert required skills into a weighted vector"""
@@ -157,7 +162,7 @@ def main():
         with st.spinner("Analyzing your requirements..."):
             try:
                 # Get requirements analysis
-                requirements = matcher.get_claude_analysis(legal_need)
+                requirements = matcher.analyze_legal_need(legal_need)
                 
                 # Find matches
                 matches = matcher.match_lawyers(requirements)
