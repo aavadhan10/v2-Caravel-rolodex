@@ -41,9 +41,9 @@ class LawyerMatchingSystem:
         self.skills_data = clean_skills_data('skills_responses.csv')
         self.lawyer_data = pd.read_csv('BD_Caravel.csv')
         
-        # Create mapping between skills responses and lawyer profiles using email
+        # Create mapping between skills responses and lawyer profiles using name
         self.lawyer_map = {
-            email: idx for idx, email in enumerate(self.skills_data['Submitter Email'])
+            name: idx for idx, name in enumerate(self.skills_data['Submitter Name'])
         }
         
         # Extract skill columns (those containing 'Skill' in the name)
@@ -118,9 +118,28 @@ class LawyerMatchingSystem:
         for idx in top_indices:
             # Get corresponding lawyer profile
             lawyer_email = self.skills_data.iloc[idx]['Submitter Email']
-            lawyer_matches = self.lawyer_data[
-                self.lawyer_data['Email'].str.lower() == lawyer_email.lower()
-            ]
+            # Try to find email in profile data (handle different possible column names)
+            email_columns = ['Email', 'email', 'E-mail', 'e-mail']
+            lawyer_matches = pd.DataFrame()
+            
+            for email_col in email_columns:
+                if email_col in self.lawyer_data.columns:
+                    lawyer_matches = self.lawyer_data[
+                        self.lawyer_data[email_col].str.lower() == lawyer_email.lower()
+                    ]
+                    if not lawyer_matches.empty:
+                        break
+            
+            # If no email match, try matching by name
+            if lawyer_matches.empty:
+                submitter_name = self.skills_data.iloc[idx]['Submitter Name']
+                if 'First Name' in self.lawyer_data.columns and 'Last Name' in self.lawyer_data.columns:
+                    name_parts = submitter_name.split()
+                    if len(name_parts) >= 2:
+                        lawyer_matches = self.lawyer_data[
+                            (self.lawyer_data['First Name'].str.lower() == name_parts[0].lower()) &
+                            (self.lawyer_data['Last Name'].str.lower() == name_parts[-1].lower())
+                        ]
             
             if len(lawyer_matches) == 0:
                 continue
@@ -133,6 +152,7 @@ class LawyerMatchingSystem:
             # Create match info
             match_info = {
                 'name': f"{lawyer_profile['First Name']} {lawyer_profile['Last Name']}",
+                'email': lawyer_profile.get('email', lawyer_profile.get('Email', '')),  # Try both capitalizations
                 'title': lawyer_profile['Level/Title'],
                 'practice_areas': lawyer_profile['Area of Practise + Add Info'],
                 'industry_experience': lawyer_profile['Industry Experience'],
@@ -220,6 +240,12 @@ def main():
                             st.write(match['industry_experience'])
                             
                         with col2:
+                            st.write("**Email:**")
+                            if match['email']:
+                                st.write(match['email'])
+                            else:
+                                st.write("N/A")
+                                
                             st.write("**Languages:**")
                             st.write(match['languages'])
                             
