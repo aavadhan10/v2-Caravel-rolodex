@@ -15,8 +15,8 @@ class LawyerMatchingSystem:
         
     def load_data(self) -> None:
         """Load and preprocess the skills and lawyer data"""
-        # Load skills data
-        self.skills_data = pd.read_csv('skills_responses.csv')
+        # Load and clean skills data
+        self.skills_data = clean_skills_data('skills_responses.csv')
         self.lawyer_data = pd.read_csv('BD_Caravel.csv')
         
         # Create mapping between skills responses and lawyer profiles using email
